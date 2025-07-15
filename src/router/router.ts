@@ -135,7 +135,7 @@ const oriRoutes = [
     meta: {
       authorize: true,
     },
-  },
+  }
 ];
 /**
  * 授权routes列表

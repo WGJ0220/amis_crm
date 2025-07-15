@@ -1,11 +1,28 @@
 <script setup lang="ts">
 import KamisComp from '@/components/KamisComp/index.vue';
 const amisJSON = {
-  "type": "page",
-  "data": {
-    "selectId": 1
+  type: 'page',
+  style: { background: '#ffffff' },
+  initApi: {
+    method: 'get',
+    url: '/yyzt-web/operation/ad/findAdPostion.do?page.page=1&page.size=10&type=nine',
+    adaptor: `
+      const statusMap = {1: '启用中', 2: '已废弃', 3: '已过期'};
+      console.log(payload);
+      const scanStatusMap = {1: '已留资', 2: '浏览中', 3: '已下载'};
+      if(payload.data) {
+        payload.data.statusLabel = statusMap[payload.data.status1] || '';
+        if(Array.isArray(payload.data.scanRecords)) {
+          payload.data.scanRecords = payload.data.scanRecords.map(item => ({
+            ...item,
+            statusLabel: scanStatusMap[item.status1] || ''
+          }));
+        }
+      }
+      return { ...payload, ...payload.data };
+    `
   },
-  "body": [
+  body: [
     // 头部
     {
       "type": "flex",
@@ -39,7 +56,7 @@ const amisJSON = {
               "body": [
                 {
                   "type": "icon",
-                  "icon": "qrcode",
+                  "icon": "fas fa-info-circle",
                   "style": {
                     "fontSize": "20px",
                     "color": "#fff"
@@ -56,7 +73,7 @@ const amisJSON = {
               "items": [
                 {
                   "type": "tpl",
-                  "tpl": "新增二维码",
+                  "tpl": "二维码详情",
                   "style": {
                     "fontWeight": "bold",
                     "fontSize": "22px",
@@ -65,7 +82,7 @@ const amisJSON = {
                 },
                 {
                   "type": "tpl",
-                  "tpl": "创建专属推广二维码",
+                  "tpl": "查看二维码详细信息和统计数据",
                   "style": {
                     "fontSize": "16px",
                     "color": "#fff"
@@ -93,464 +110,204 @@ const amisJSON = {
         }
       ]
     },
-    // 内容区域
+    // 内容部分
     {
-      "type": "container",
-      "style": { "background": "#fffdfd", "padding": "0 32px 100px 32px", "overflow": "auto" },
-      "body": [
-        // 选择卡片
+      type: 'flex',
+      style: { marginTop: '20px', marginBottom: '80px' },
+      items: [
         {
-          "type": "flex",
-          "direction": "row",
-          "alignItems": "center",
-          "justify": "flex-start",
-          "style": { "marginTop": "32px" },
-          "items": [
-            { "type": "icon", "icon": "fab fa-buffer", "style": { "color": "#2c68ea", "fontSize": "16px", "height": "16px", "width": "16px" } },
-            { "type": "tpl", "tpl": "选择二维码类型", "style": { "fontSize": "16px", "color": "#333", "fontWeight": "bold", "marginLeft": "8px" } }
+          type: 'container',
+          style: {
+            width: '200px',
+            background: '#f9fafc',
+            borderRadius: '12px',
+            padding: '30px',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'flex-start',
+            gap: '16px'
+          },
+          body: [
+            {
+              type: 'flex',
+              style: { alignItems: 'center', gap: '8px', marginBottom: '8px' },
+              items: [
+                { type: 'icon', icon: 'qrcode'},
+                { type: 'tpl', tpl: '二维码预览', style: { fontWeight: 'bold', fontSize: '16px' } }
+              ]
+            },
+            {
+              type: 'image',
+              src: "${imgUrl || 'https://cdn.jsdelivr.net/gh/iamcco/markdown-img@master/20200308-20200308155312.png'}",
+              width: 140,
+              height: 140,
+              style: { borderRadius: '8px', background: '#fff', objectFit: 'contain' }
+            },
+            {
+              type: 'button',
+              label: '下载二维码',
+              icon: 'fa fa-download',
+              level: 'primary',
+              style: { background: '#2563ea', color: '#fff', width: '100%', marginTop: '8px' },
+              onClick: {
+                actionType: 'download',
+                args: { url: '${imgUrl}', fileName: 'qrcode.png' }
+              },
+              disabledOn: '!this.imgUrl'
+            },
+            {
+              type: 'button',
+              label: '复制链接',
+              icon: 'fa fa-copy',
+              level: 'default',
+              style: { width: '100%', marginTop: '8px' },
+              onClick: {
+                actionType: 'copy',
+                content: '${imgUrl}'
+              },
+              disabledOn: '!this.imgUrl'
+            }
           ]
         },
         {
-          "type": "flex",
-          "direction": "row",
-          "gap": "20px",
-          "justify": "flex-start",
-          "style": { "margin": "10px 0 32px 0" },
-          "items": [
+          type: 'container',
+          style: { flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', marginLeft: '20px' },
+          body: [
+            // 基本信息卡片
             {
-              "type": "card",
-              "className": "${selectId == 1 ? 'selected-card' : 'unselected-card'}",
-              "style": {
-                "width": "30%",
-                "borderRadius": "12px",
-                "border": "2px solid",
-                "borderColor": "${selectId == 1 ? '#7faefa' : '#dcdcdc'}",
-                "background": "${selectId == 1 ? '#eff6ff' : '#fafafa'}",
-                "cursor": "pointer"
-              },
-              "onEvent": { "click": { "actions": [{ "actionType": "setValue", "componentId": "selectId", "args": { "value": 1 } }] } },
-              "body": [
+              type: 'container',
+              style: { background: '#f9fafc', borderRadius: '12px', marginBottom: '16px', padding: '20px' },
+              body: [
                 {
-                  "type": "flex",
-                  "direction": "row",
-                  "alignItems": "center",
-                  "justify": "flex-start",
-                  "gap": "16px",
-                  "items": [
-                    {
-                      "type": "icon",
-                      "icon": "user-plus",
-                      "style": {
-                        "background": "#10b982",
-                        "borderRadius": "8px",
-                        "padding": "10px 7.5px",
-                        "color": "#fff",
-                        "fontSize": "22px"
+                  type: 'flex',
+                  direction: 'row',
+                  alignItems: 'center',
+                  justify: 'flex-start',
+                  style: { marginBottom: '16px' },
+                  items: [
+                    { type: 'icon', icon: 'fas fa-info-circle', style: { color: '#2c68ea', fontSize: '16px' } },
+                    { type: 'tpl', tpl: '基本信息', style: { fontWeight: 'bold', fontSize: '16px', marginLeft: '8px' } }
+                  ]
+                },
+                {
+                  type: 'flex',
+                  direction: 'row',
+                  style: { rowGap: '12px', columnGap: '0', flexWrap: 'wrap' },
+                  items: [
+                    { type: 'container', style: { width: '50%' }, body: [ { type: 'tpl', tpl: '<span style="color:#9fa6b3;">渠道名称</span><br><b style="font-size:18px;">${channelName}</b>' } ] },
+                    { type: 'container', style: { width: '50%' }, body: [ { type: 'tpl', tpl: '<span style="color:#9fa6b3;">客户经理</span><br><b style="font-size:18px;">${manager}</b>' } ] },
+                    { type: 'container', style: { width: '50%' }, body: [ { type: 'tpl', tpl: '<span style="color:#9fa6b3;">营业部编号</span><br><b style="font-size:18px;">${branchNo}</b>' } ] },
+                    { type: 'container', style: { width: '50%' }, body: [ { type: 'tpl', tpl: '<span style="color:#9fa6b3;">二维码类型</span><br><b style="font-size:18px;">${type}</b>' } ] },
+                    { type: 'container', style: { width: '50%' }, body: [ { type: 'tpl', tpl: '<span style="color:#9fa6b3;">创建时间</span><br><b style="font-size:18px;">${createTime}</b>' } ] },
+                    { type: 'container', style: { width: '50%' }, body: [ { type: 'tpl', tpl: '<span style="color:#9fa6b3;">状态</span><br><span class="status-label">${statusLabel}</span>' } ] }
+                  ]
+                }
+              ]
+            },
+            // 扫码统计卡片
+            {
+              type: 'container',
+              style: { background: '#eff6ff', borderRadius: '12px', marginBottom: '16px', padding: '20px' },
+              body: [
+                {
+                  type: 'flex',
+                  direction: 'row',
+                  alignItems: 'center',
+                  justify: 'flex-start',
+                  style: { marginBottom: '16px' },
+                  items: [
+                    { type: 'icon', icon: 'fas fa-bar-chart', style: { color: '#1ea650', fontSize: '16px' } },
+                    { type: 'tpl', tpl: '扫码统计', style: { fontWeight: 'bold', fontSize: '16px', marginLeft: '8px' } }
+                  ]
+                },
+                {
+                  type: 'flex',
+                  style: { justifyContent: 'space-around' },
+                  items: [
+                    { type: 'container', body: [ { type: 'tpl', tpl: '<b style="color:#2c68ea;font-size:22px;">${scanTotal}</b><br><span style="color:#9fa6b3;">总扫码</span>' } ] },
+                    { type: 'container', body: [ { type: 'tpl', tpl: '<b style="color:#1ea650;font-size:22px;">${scanToday}</b><br><span style="color:#9fa6b3;">今日扫码</span>' } ] },
+                    { type: 'container', body: [ { type: 'tpl', tpl: '<b style="color:#9e49ea;font-size:22px;">${conversionRate}%</b><br><span style="color:#9fa6b3;">转化率</span>' } ] },
+                    { type: 'container', body: [ { type: 'tpl', tpl: '<b style="color:#ea641f;font-size:22px;">${leads}</b><br><span style="color:#9fa6b3;">留资客户</span>' } ] }
+                  ]
+                }
+              ]
+            },
+            // 最近扫码记录卡片
+            {
+              type: 'container',
+              style: { background: '#f9fafc', borderRadius: '12px', marginBottom: '8px', padding: '20px' },
+              body: [
+                {
+                  type: 'flex',
+                  direction: 'row',
+                  alignItems: 'center',
+                  justify: 'flex-start',
+                  style: { marginBottom: '16px' },
+                  items: [
+                    { type: 'icon', icon: 'fas fa-clock-o', style: { color: '#9e49ea', fontSize: '16px' } },
+                    { type: 'tpl', tpl: '最近扫码记录', style: { fontWeight: 'bold', fontSize: '16px', marginLeft: '8px' } }
+                  ]
+                },
+                {
+                  type: 'list',
+                  source: '${scanRecords}',
+                  listItem: {
+                    type: 'flex',
+                    justify: 'space-between',
+                    alignItems: 'center',
+                    style: { width: '100%', background: '#fff', borderRadius: '8px', marginBottom: '8px', padding: '12px 16px' },
+                    items: [
+                      // 左侧icon+model+region
+                      {
+                        type: 'flex',
+                        alignItems: 'center',
+                        items: [
+                          {
+                            type: 'container',
+                            style: {
+                              width: '40px',
+                              height: '40px',
+                              borderRadius: '50%',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              background: "${phoneType == 'huawei' ? '#f3eafd' : phoneType == 'android' ? '#eaf1fd' : '#eafdf3'}"
+                            },
+                            body: [
+                              {
+                                type: 'icon',
+                                icon: "${phoneType == 'huawei' ? 'fas fa-mobile' : 'fas fa-tablet-alt' }",
+                                style: {
+                                  color: "${phoneType == 'huawei' ? '#9e49ea' : phoneType == 'android' ? '#2c68ea' : '#1ea650'}",
+                                  fontSize: '22px'
+                                }
+                              }
+                            ]
+                          },
+                          {
+                            type: 'flex',
+                            direction: 'column',
+                            style: { justifyContent: 'center', marginLeft: '10px' },
+                            items: [
+                              { type: 'tpl', tpl: '<b style="font-size:16px;">${model}</b>' },
+                              { type: 'tpl', tpl: '<span style="font-size:14px;color:#9fa6b3;">${region}</span>' }
+                            ]
+                          }
+                        ]
+                      },
+                      // 右侧scanTime+label
+                      {
+                        type: 'flex',
+                        direction: 'column',
+                        style: { alignItems: 'flex-end' },
+                        items: [
+                          { type: 'tpl', tpl: '<b style="font-size:16px;">${scanTime}</b>' },
+                          { type: 'tpl', tpl: '<span class="status-label">${label}</span>' }
+                        ]
                       }
-                    },
-                    {
-                      "type": "flex",
-                      "direction": "column",
-                      "style": {
-                        "marginLeft": "12px"
-                      },
-                      "items": [
-                        {
-                          "type": "tpl",
-                          "tpl": "开户二维码",
-                          "style": { "fontWeight": "bold", "fontSize": "16px", "color": "#222" }
-                        },
-                        {
-                          "type": "tpl",
-                          "tpl": "客户开户留资专用。",
-                          "style": { "fontSize": "14px", "color": "#9da4b0" }
-                        }
-                      ]
-                    },
-                  ]
-                },
-                {
-                  "type": "flex",
-                  "direction": "column",
-                  "justify": "flex-start",
-                  "gap": "2px",
-                  "style": { "marginTop": "8px" },
-                  "items": [
-                    {
-                      "type": "flex",
-                      "direction": "row",
-                      "justify": "flex-start",
-                      "alignItems": "center",
-                      "items": [
-                        { "type": "icon", "icon": "check-circle", "style": { "fontSize": "12px", "color": "#9da4b0", "marginRight": "4px" } },
-                        { "type": "tpl", "tpl": "包含客户经理信息", "style": { "fontSize": "12px", "color": "#9da4b0" } }
-                      ]
-                    },
-                    {
-                      "type": "flex",
-                      "direction": "row",
-                      "justify": "flex-start",
-                      "alignItems": "center",
-                      "items": [
-                        { "type": "icon", "icon": "check-circle", "style": { "fontSize": "12px", "color": "#9da4b0", "marginRight": "4px" } },
-                        { "type": "tpl", "tpl": "营业部号绑定", "style": { "fontSize": "12px", "color": "#9da4b0" } }
-                      ]
-                    },
-                    {
-                      "type": "flex",
-                      "direction": "row",
-                      "justify": "flex-start",
-                      "alignItems": "center",
-                      "items": [
-                        { "type": "icon", "icon": "check-circle", "style": { "fontSize": "12px", "color": "#9da4b0", "marginRight": "4px" } },
-                        { "type": "tpl", "tpl": "云平台渠道追踪", "style": { "fontSize": "12px", "color": "#9da4b0" } }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            {
-              "type": "card",
-              "className": "${selectId == 2 ? 'selected-card' : 'unselected-card'}",
-              "style": {
-                "width": "30%",
-                "borderRadius": "12px",
-                "marginLeft": "16px",
-                "border": "2px solid",
-                "borderColor": "${selectId == 2 ? '#7faefa' : '#dcdcdc'}",
-                "background": "${selectId == 2 ? '#eff6ff' : '#fafafa'}",
-                "cursor": "pointer"
-              },
-              "onEvent": { "click": { "actions": [{ "actionType": "setValue", "componentId": "selectId", "args": { "value": 2 } }] } },
-              "body": [
-                {
-                  "type": "flex",
-                  "direction": "row",
-                  "alignItems": "center",
-                  "justify": "flex-start",
-                  "gap": "16px",
-                  "items": [
-                    {
-                      "type": "icon",
-                      "icon": "user-plus",
-                      "style": {
-                        "background": "#10b982",
-                        "borderRadius": "8px",
-                        "padding": "10px 7.5px",
-                        "color": "#fff",
-                        "fontSize": "22px"
-                      }
-                    },
-                    {
-                      "type": "flex",
-                      "direction": "column",
-                      "style": {
-                        "marginLeft": "12px"
-                      },
-                      "items": [
-                        {
-                          "type": "tpl",
-                          "tpl": "开户二维码",
-                          "style": { "fontWeight": "bold", "fontSize": "16px", "color": "#222" }
-                        },
-                        {
-                          "type": "tpl",
-                          "tpl": "客户开户留资专用。",
-                          "style": { "fontSize": "14px", "color": "#9da4b0" }
-                        }
-                      ]
-                    },
-                  ]
-                },
-                {
-                  "type": "flex",
-                  "direction": "column",
-                  "justify": "flex-start",
-                  "gap": "2px",
-                  "style": { "marginTop": "8px" },
-                  "items": [
-                    {
-                      "type": "flex",
-                      "direction": "row",
-                      "justify": "flex-start",
-                      "alignItems": "center",
-                      "items": [
-                        { "type": "icon", "icon": "check-circle", "style": { "fontSize": "12px", "color": "#9da4b0", "marginRight": "4px" } },
-                        { "type": "tpl", "tpl": "包含客户经理信息", "style": { "fontSize": "12px", "color": "#9da4b0" } }
-                      ]
-                    },
-                    {
-                      "type": "flex",
-                      "direction": "row",
-                      "justify": "flex-start",
-                      "alignItems": "center",
-                      "items": [
-                        { "type": "icon", "icon": "check-circle", "style": { "fontSize": "12px", "color": "#9da4b0", "marginRight": "4px" } },
-                        { "type": "tpl", "tpl": "营业部号绑定", "style": { "fontSize": "12px", "color": "#9da4b0" } }
-                      ]
-                    },
-                    {
-                      "type": "flex",
-                      "direction": "row",
-                      "justify": "flex-start",
-                      "alignItems": "center",
-                      "items": [
-                        { "type": "icon", "icon": "check-circle", "style": { "fontSize": "12px", "color": "#9da4b0", "marginRight": "4px" } },
-                        { "type": "tpl", "tpl": "云平台渠道追踪", "style": { "fontSize": "12px", "color": "#9da4b0" } }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-          ]
-        },
-        // 表单区
-        {
-          "type": "form",
-          "wrapWithPanel": false,
-          "data": { "selectId": 1 },
-          "controls": [
-            // 基础信息卡片
-            {
-              "type": "container",
-              "style": { "background": "#f9fafc", "borderRadius": "16px", "marginBottom": "30px", "padding": "24px" },
-              "body": [
-                {
-                  "type": "flex",
-                  "direction": "row",
-                  "alignItems": "center",
-                  "justify": "flex-start",
-                  "items": [
-                    { "type": "icon", "icon": "info-circle", "style": { "color": "#2c68ea", "fontSize": "16px", "height": "16px", "width": "16px" } },
-                    { "type": "tpl", "tpl": "基础信息", "style": { "fontSize": "16px", "color": "#333", "fontWeight": "bold", "marginLeft": "4px" } }
-                  ]
-                },
-                {
-                  "type": "flex",
-                  "direction": "row",
-                  "justify": "space-between",
-                  "style": {
-                    "marginTop": "10px"
-                  },
-                  "items": [
-                    {
-                      "type": "container",
-                      "style": {
-                        "width": "45%"
-                      },
-                      "body": [
-                        {
-                          "type": "flex",
-                          "direction": "row",
-                          "justify": "flex-start",
-                          "alignItems": "center",
-                          "items": [
-                            { "type": "icon", "icon": "tag", "style": { "color": "#333", "fontSize": "14px" } },
-                            { "type": "tpl", "tpl": "渠道名称", "style": { "fontSize": "14px", "color": "#333", "marginLeft": "4px" } }
-                          ]
-                        },
-                        { "type": "input-text", "style": {
-                          "marginTop": "6px"
-                        }, "name": "channelName", "placeholder": "如：线上推广渠道", "required": true }
-                      ]
-                    },
-                    {
-                      "type": "container",
-                      "style": {
-                        "width": "45%"
-                      },
-                      "body": [
-                        {
-                          "type": "flex",
-                          "direction": "row",
-                          "alignItems": "center",
-                          "justify": "flex-start",
-                          "items": [
-                            { "type": "icon", "icon": "user", "style": { "color": "#333", "fontSize": "14px" } },
-                            { "type": "tpl", "tpl": "客户经理", "style": { "fontSize": "14px", "color": "#333", "marginLeft": "4px" } }
-                          ]
-                        },
-                        {
-                          "type": "select",
-                          "name": "managerId",
-                          "style": {
-                            "marginTop": "6px"
-                          },
-                          "placeholder": "请选择客户经理",
-                          "required": true,
-                          "source": "/api/v1/users/list",
-                          "labelField": "username",
-                          "valueField": "userid"
-                        }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            // 开户专用信息卡片（selectId==1时显示）
-            {
-              "type": "container",
-              "visibleOn": "selectId == 1",
-              "style": { "background": "#eff6ff", "borderRadius": "16px", "marginBottom": "30px", "padding": "24px", "transition": "all 0.3s" },
-              "body": [
-                {
-                  "type": "flex",
-                  "direction": "row",
-                  "alignItems": "center",
-                  "justify": "flex-start",
-                  "items": [
-                    { "type": "icon", "icon": "building", "style": { "color": "#2c68ea", "fontSize": "16px", "height": "16px", "width": "16px" } },
-                    { "type": "tpl", "tpl": "开户专用信息", "style": { "fontSize": "16px", "color": "#333", "fontWeight": "bold", "marginLeft": "4px" } }
-                  ]
-                },
-                {
-                  "type": "flex",
-                  "direction": "row",
-                  "justify": "space-between",
-                  "style": {
-                    "marginTop": "10px"
-                  },
-                  "items": [
-                    {
-                      "type": "container",
-                      "style": {
-                        "width": "45%"
-                      },
-                      "body": [
-                        {
-                          "type": "flex",
-                          "direction": "row",
-                          "alignItems": "center",
-                          "justify": "flex-start",
-                          "items": [
-                            { "type": "icon", "icon": "slack", "style": { "color": "#333", "fontSize": "14px" } },
-                            { "type": "tpl", "tpl": "营业部号", "style": { "fontSize": "14px", "color": "#333", "marginLeft": "4px"} }
-                          ]
-                        },
-                        { "type": "input-text", "style": {
-                          "marginTop": "6px"
-                        }, "name": "branchNo", "placeholder": "如：001", "required": true }
-                      ]
-                    },
-                    {
-                      "type": "container",
-                      "style": {
-                        "width": "45%"
-                      },
-                      "body": [
-                        {
-                          "type": "flex",
-                          "direction": "row",
-                          "alignItems": "center",
-                          "justify": "flex-start",
-                          "items": [
-                            { "type": "icon", "icon": "cloud", "style": { "color": "#333", "fontSize": "14px" } },
-                            { "type": "tpl", "tpl": "云平台渠道", "style": { "fontSize": "14px", "color": "#333", "marginLeft": "4px" } }
-                          ]
-                        },
-                        { "type": "input-text", "style": {
-                          "marginTop": "6px"
-                        }, "name": "cloudChannel", "placeholder": "如：ONLINE_001", "required": true }
-                      ]
-                    }
-                  ]
-                }
-              ]
-            },
-            // 高级设置卡片
-            {
-              "type": "container",
-              "style": { "background": "#f9fafc", "borderRadius": "16px", "marginBottom": "30px", "padding": "24px" },
-              "body": [
-                {
-                  "type": "flex",
-                  "direction": "row",
-                  "alignItems": "center",
-                  "justify": "flex-start",
-                  "items": [
-                    { "type": "icon", "icon": "cog", "style": { "color": "#2c68ea", "fontSize": "16px" } },
-                    { "type": "tpl", "tpl": "高级设置", "style": { "fontSize": "16px", "color": "#333", "fontWeight": "bold", "marginLeft": "4px" } }
-                  ]
-                },
-                {
-                  "type": "flex",
-                  "direction": "row",
-                  "justify": "space-between",
-                  "style": {
-                    "marginTop": "10px"
-                  },
-                  "items": [
-                    {
-                      "type": "container",
-                      "style": {
-                        "width": "45%"
-                      },
-                      "body": [
-                        {
-                          "type": "flex",
-                          "direction": "row",
-                          "justify": "flex-start",
-                          "alignItems": "center",
-                          "items": [
-                            { "type": "icon", "icon": "calendar-alt", "style": { "color": "#333", "fontSize": "14px" } },
-                            { "type": "tpl", "tpl": "有效期", "style": { "fontSize": "14px", "color": "#333", "marginLeft": "4px" } }
-                          ]
-                        },
-                        {
-                          "type": "select",
-                          "name": "validity",
-                          "style": {
-                            "marginTop": "6px"
-                          },
-                          "placeholder": "请选择有效期",
-                          "options": [
-                            { "label": "永久有效", "value": 1 },
-                            { "label": "30天", "value": 2 },
-                            { "label": "60天", "value": 3 },
-                            { "label": "90天", "value": 4 },
-                            { "label": "180天", "value": 5 },
-                            { "label": "365天", "value": 6 }
-                          ],
-                          "value": 1
-                        }
-                      ]
-                    },
-                    {
-                      "type": "container",
-                      "style": {
-                        "width": "45%"
-                      },
-                      "body": [
-                        {
-                          "type": "flex",
-                          "direction": "row",
-                          "alignItems": "center",
-                          "justify": "flex-start",
-                          "items": [
-                            { "type": "icon", "icon": "qrcode", "style": { "color": "#333", "fontSize": "14px" } },
-                            { "type": "tpl", "tpl": "扫码限制", "style": { "fontSize": "14px", "color": "#333", "marginLeft": "4px" } }
-                          ]
-                        },
-                        {
-                          "type": "select",
-                          "name": "scanLimit",
-                          "style": {
-                            "marginTop": "6px"
-                          },
-                          "placeholder": "请选择扫码限制",
-                          "options": [
-                            { "label": "无限制", "value": 1 },
-                            { "label": "登录资金账号", "value": 2 },
-                            { "label": "登录行情账号", "value": 3 }
-                          ],
-                          "value": 1
-                        }
-                      ]
-                    }
-                  ]
+                    ]
+                  }
                 }
               ]
             }
@@ -584,7 +341,7 @@ const amisJSON = {
             "gap": "8px",
             "items": [
               { "type": "icon", "icon": "info-circle", "style": { "color": "#a8acb4", "fontSize": "14px" , "height": "14px", "width": "14px"} },
-              { "type": "tpl", "tpl": "创建后可在列表中查看和管理二维码", "style": { "fontSize": "14px", "color": "#a8acb4", "marginLeft": "8px"} }
+              { "type": "tpl", "tpl": "数据实时更新，最后更新：刚刚", "style": { "fontSize": "14px", "color": "#a8acb4", "marginLeft": "8px"} }
             ]
           },
           {
@@ -594,23 +351,10 @@ const amisJSON = {
             "items": [
               {
                 "type": "button",
-                "icon": "fas fa-times",
-                "label": "取消",
-                "level": "default",
+                "icon": "fas fa-check",
+                "label": "确定",
+                "level": 'primary',
                 "onEvent": { "click": { "actions": [{ "actionType": "goBack" }] } }
-              },
-              {
-                "type": "button",
-                "icon": "fas fa-magic",
-                "label": "创建二维码",
-                "level": "primary",
-                "style": {
-                  "backgroundImage": "linear-gradient(90deg, #2c67eb 0%, #9a44ea 100%)",
-                  "color": "#fff",
-                  "border": "none",
-                  "marginLeft": "10px"
-                },
-                "actionType": "submit"
               }
             ]
           }
@@ -625,11 +369,15 @@ const amisJSON = {
   <KamisComp :amisJSON="amisJSON"/>
 </template>
 
-<style scoped>
+<style>
 .selected-card {
   box-shadow: 0 2px 8px rgba(44,103,235,0.08);
 }
 .unselected-card {
   box-shadow: none;
+}
+.amis-scope .cxd-List-items {
+  border: none;
+  background: #f9fafc;
 }
 </style> 

@@ -15,9 +15,18 @@ import {
   qiankunWindow,
 } from "vite-plugin-qiankun/dist/helper";
 import router from "@/router";
-import i18n from './i18n';
-import { useTheme } from '@/stores/theme';
+import i18n from './i18n/index.js';
+import { useTheme } from '@/stores/theme.js';
 import amisInit from '@king-fisher/crm-amis-next';
+
+// 开发环境启动 mockjs
+if (process.env.NODE_ENV === 'development') {
+  import('@/mock/mockApi.js').then(() => {
+    console.log('✅ mockjs 已启动，开始模拟接口数据');
+  }).catch((error) => {
+    console.error('❌ mockjs 启动失败:', error);
+  });
+}
 let app: App;
 async function render(dom: string = '#data_center') {
   try {
